@@ -30,7 +30,7 @@ plus a set of unit tests that must pass before moving on.
 | Concern         | Choice                                               |
 |-----------------|------------------------------------------------------|
 | Language        | C++20                                                |
-| Build           | CMake (≥ 3.20)                                       |
+| Build           | CMake (≥ 3.21)                                       |
 | Unit tests      | GoogleTest (pulled in via `FetchContent`)            |
 | Benchmarks      | Google Benchmark (Phase 7)                           |
 | Sanitizers      | ASan + UBSan in a `Debug` build preset               |
