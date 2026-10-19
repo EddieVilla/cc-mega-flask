@@ -14,6 +14,9 @@ struct Instrument {
     int price_decimals = kDefaultPriceDecimals;  // 2 means prices are stored in cents
     Price tick_size = 1;  // minimum price step, in price units (1 = 0.01 with 2 decimals)
     Qty lot_size = 1;     // order quantities must be a multiple of this
+    // Larger orders are rejected. Besides catching typos, the cap keeps sums
+    // of quantities far away from integer overflow.
+    Qty max_order_qty = 1'000'000'000;
 };
 
 // The symbols the engine trades and their rules.

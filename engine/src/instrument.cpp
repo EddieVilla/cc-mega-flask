@@ -5,7 +5,7 @@ namespace me {
 bool InstrumentRegistry::add(const Instrument& instrument) {
     const bool valid = !instrument.symbol.empty() && instrument.price_decimals >= 0 &&
                        instrument.price_decimals <= kMaxPriceDecimals && instrument.tick_size > 0 &&
-                       instrument.lot_size > 0;
+                       instrument.lot_size > 0 && instrument.max_order_qty > 0;
     if (!valid) return false;
     return instruments_.try_emplace(instrument.symbol, instrument).second;
 }

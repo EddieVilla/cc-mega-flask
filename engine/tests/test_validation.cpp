@@ -8,8 +8,9 @@ namespace {
 
 class ValidationTest : public ::testing::Test {
 protected:
-    // Prices in cents with a 0.05 tick; quantities in round lots of 10.
-    const Instrument demo_{.symbol = "DEMO", .tick_size = 5, .lot_size = 10};
+    // Prices in cents with a 0.05 tick; quantities in round lots of 10, at
+    // most 1000 per order.
+    const Instrument demo_{.symbol = "DEMO", .tick_size = 5, .lot_size = 10, .max_order_qty = 1000};
 
     static Order limit(Side side, Qty qty, Price price) {
         return {.id = 1, .symbol = "DEMO", .side = side, .price = price, .qty = qty};
@@ -38,6 +39,12 @@ TEST_F(ValidationTest, RejectsZeroOrNegativeQuantity) {
     EXPECT_EQ(validate(limit(Side::Buy, 0, 10025), demo_), RejectReason::InvalidQuantity);
     EXPECT_EQ(validate(limit(Side::Buy, -10, 10025), demo_), RejectReason::InvalidQuantity);
     EXPECT_EQ(validate(market(Side::Buy, 0), demo_), RejectReason::InvalidQuantity);
+}
+
+TEST_F(ValidationTest, RejectsQuantityAboveMaximum) {
+    EXPECT_EQ(validate(limit(Side::Buy, 1000, 10025), demo_), std::nullopt);
+    EXPECT_EQ(validate(limit(Side::Buy, 1010, 10025), demo_), RejectReason::QuantityTooLarge);
+    EXPECT_EQ(validate(market(Side::Sell, 1010), demo_), RejectReason::QuantityTooLarge);
 }
 
 TEST_F(ValidationTest, RejectsQuantityThatIsNotWholeLots) {

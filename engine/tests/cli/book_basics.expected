@@ -27,6 +27,8 @@ ERROR no resting order with id 2
 > # Bad input is rejected before it reaches the book.
 > ADD BUY 0 @ 100.00
 REJECT invalid quantity
+> ADD BUY 5000000000 @ 100.00
+REJECT quantity above maximum
 > ADD BUY 10 @ 100.001
 ERROR invalid price "100.001"
 > ADD HOLD 10 @ 100.00

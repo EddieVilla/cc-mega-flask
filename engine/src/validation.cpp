@@ -5,6 +5,7 @@ namespace me {
 std::optional<RejectReason> validate(const Order& order, const Instrument& instrument) {
     if (order.symbol != instrument.symbol) return RejectReason::UnknownSymbol;
     if (order.qty <= 0) return RejectReason::InvalidQuantity;
+    if (order.qty > instrument.max_order_qty) return RejectReason::QuantityTooLarge;
     if (order.qty % instrument.lot_size != 0) return RejectReason::InvalidLotSize;
 
     switch (order.type) {

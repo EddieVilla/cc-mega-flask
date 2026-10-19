@@ -176,12 +176,13 @@ and the existing tests confirm nothing broke.
 - `Order` struct: id, symbol, side, type, tif, price, qty, filled_qty, seq,
   timestamp, plus `remaining_qty()`. Tracking `filled_qty` (default 0) means a
   new order's remaining quantity is right without setting two fields.
-- `instrument.hpp`: `Instrument` (symbol, price decimals, tick size, lot size)
-  and an `InstrumentRegistry` to look symbols up.
+- `instrument.hpp`: `Instrument` (symbol, price decimals, tick size, lot size,
+  maximum order size) and an `InstrumentRegistry` to look symbols up.
 - `validate(order, instrument)` and `validate(order, registry)` return
-  `std::optional<RejectReason>`: unknown symbol, zero or negative qty, qty not
-  a multiple of the lot size, non-positive limit price, market order with a
-  price, price not on tick.
+  `std::optional<RejectReason>`: unknown symbol, zero or negative qty, qty
+  above the maximum, qty not a multiple of the lot size, non-positive limit
+  price, market order with a price, price not on tick. The maximum order size
+  also keeps sums of quantities far from integer overflow.
 
 **Checkpoint 1:** `me_cli` builds a few orders, prints them, and shows which
 ones validation rejects and why.

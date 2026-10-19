@@ -11,10 +11,11 @@ namespace me {
 
 enum class RejectReason : std::uint8_t {
     UnknownSymbol,
-    InvalidQuantity,  // zero or negative
-    InvalidLotSize,   // not a multiple of the instrument's lot size
-    InvalidPrice,     // limit price <= 0, or a market order with a price
-    PriceNotOnTick,   // limit price not a multiple of the tick size
+    InvalidQuantity,   // zero or negative
+    QuantityTooLarge,  // above the instrument's maximum order size
+    InvalidLotSize,    // not a multiple of the instrument's lot size
+    InvalidPrice,      // limit price <= 0, or a market order with a price
+    PriceNotOnTick,    // limit price not a multiple of the tick size
 };
 
 constexpr std::string_view to_string(RejectReason reason) noexcept {
@@ -23,6 +24,8 @@ constexpr std::string_view to_string(RejectReason reason) noexcept {
             return "unknown symbol";
         case RejectReason::InvalidQuantity:
             return "invalid quantity";
+        case RejectReason::QuantityTooLarge:
+            return "quantity above maximum";
         case RejectReason::InvalidLotSize:
             return "quantity not a multiple of lot size";
         case RejectReason::InvalidPrice:

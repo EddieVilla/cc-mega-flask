@@ -40,6 +40,7 @@ TEST(InstrumentRegistry, RejectsInvalidSettings) {
     EXPECT_FALSE(instruments.add({.symbol = "B", .price_decimals = kMaxPriceDecimals + 1}));
     EXPECT_FALSE(instruments.add({.symbol = "C", .tick_size = 0}));
     EXPECT_FALSE(instruments.add({.symbol = "D", .lot_size = -1}));
+    EXPECT_FALSE(instruments.add({.symbol = "E", .max_order_qty = 0}));
     EXPECT_EQ(instruments.size(), 0u);
 }
 

@@ -12,6 +12,7 @@ CANCEL 2
 
 # Bad input is rejected before it reaches the book.
 ADD BUY 0 @ 100.00
+ADD BUY 5000000000 @ 100.00
 ADD BUY 10 @ 100.001
 ADD HOLD 10 @ 100.00
 CANCEL abc
