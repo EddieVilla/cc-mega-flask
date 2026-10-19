@@ -73,7 +73,10 @@ engine/
 ├── CMakePresets.json
 ├── include/me/
 │   ├── types.hpp          # Price, Qty, OrderId, Side, OrderType, TimeInForce
+│   ├── price.hpp          # decimal string <-> fixed-point price
 │   ├── order.hpp          # Order struct
+│   ├── instrument.hpp     # per-symbol rules (tick, lot, decimals) + registry
+│   ├── validation.hpp     # RejectReason + validate()
 │   ├── events.hpp         # Ack, Reject, Trade, Cancel, BookUpdate ...
 │   ├── price_level.hpp    # FIFO queue of orders at one price
 │   ├── order_book.hpp     # one symbol's bids + asks
@@ -87,6 +90,9 @@ engine/
 │   └── me_simulate.cpp    # random order flow generator
 ├── tests/
 │   ├── test_types.cpp
+│   ├── test_price.cpp
+│   ├── test_instrument.cpp
+│   ├── test_validation.cpp
 │   ├── test_price_level.cpp
 │   ├── test_order_book.cpp
 │   ├── test_matching.cpp
@@ -133,7 +139,7 @@ and the existing tests confirm nothing broke.
 
 ## 6. Phased plan
 
-### Phase 0 — Project scaffolding
+### Phase 0 — Project scaffolding ✅
 
 **Build**
 - `engine/CMakeLists.txt` with a `me_core` library, a `me_tests` executable,
@@ -149,24 +155,34 @@ and the existing tests confirm nothing broke.
 
 ---
 
-### Phase 1 — Domain types
+### Phase 1 — Domain types ✅
 
 **Build**
-- `types.hpp`: strong typedefs or aliases for `Price`, `Qty`, `OrderId`,
-  `SeqNum`, `Symbol`; enums `Side {Buy, Sell}`,
-  `OrderType {Limit, Market}`, `TimeInForce {GTC, IOC, FOK}`.
-- Helpers to convert between human prices and ticks:
-  `to_ticks("101.25") → 10125`, `to_string(10125) → "101.25"`.
-- `Order` struct: id, symbol, side, type, tif, price, qty, remaining_qty,
-  seq, timestamp.
-- `validate(const Order&)` returns `std::optional<RejectReason>`: zero or
-  negative qty, non-positive limit price, price not on tick, unknown symbol.
+- `types.hpp`: aliases for `Price`, `Qty`, `OrderId`, `SeqNum`, `Timestamp`,
+  `Symbol`; enums `Side {Buy, Sell}`, `OrderType {Limit, Market}`,
+  `TimeInForce {GTC, IOC, FOK}`.
+- `price.hpp`: convert between decimal strings and fixed-point prices:
+  `parse_price("101.25") → 10125`, `format_price(10125) → "101.25"`. The
+  number of decimals is a parameter (default 2).
+- `Order` struct: id, symbol, side, type, tif, price, qty, filled_qty, seq,
+  timestamp, plus `remaining_qty()`. Tracking `filled_qty` (default 0) means a
+  new order's remaining quantity is right without setting two fields.
+- `instrument.hpp`: `Instrument` (symbol, price decimals, tick size, lot size)
+  and an `InstrumentRegistry` to look symbols up.
+- `validate(order, instrument)` and `validate(order, registry)` return
+  `std::optional<RejectReason>`: unknown symbol, zero or negative qty, qty not
+  a multiple of the lot size, non-positive limit price, market order with a
+  price, price not on tick.
 
-**Checkpoint 1:** a small `main` constructs a few orders and prints them.
+**Checkpoint 1:** `me_cli` builds a few orders, prints them, and shows which
+ones validation rejects and why.
 
-**Tests** (`test_types.cpp`)
-- Price round-trips: `to_string(to_ticks(s)) == s` for several values.
-- Off-tick prices are rejected (`"101.255"` with a $0.01 tick).
+**Tests** (`test_price.cpp`, `test_types.cpp`, `test_instrument.cpp`,
+`test_validation.cpp`)
+- Price round-trips: `format_price(parse_price(s)) == s` for several values.
+- Prices more precise than allowed are rejected (`"101.255"` with 2
+  decimals), as are malformed strings and values that would overflow.
+- Off-tick prices are rejected (100.27 with a 0.05 tick).
 - Validation rejects zero/negative quantity and a limit order without a price.
 - A market order with no price passes validation.
 

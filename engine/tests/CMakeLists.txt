@@ -11,7 +11,11 @@ set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(me_tests
-    test_sanity.cpp)
+    test_instrument.cpp
+    test_price.cpp
+    test_sanity.cpp
+    test_types.cpp
+    test_validation.cpp)
 target_link_libraries(me_tests PRIVATE me_core GTest::gtest_main)
 
 include(GoogleTest)
