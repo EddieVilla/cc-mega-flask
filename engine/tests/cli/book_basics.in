@@ -1,0 +1,22 @@
+# Phase 2 checkpoint: orders rest on the book. Nothing matches yet.
+ADD BUY 100 @ 100.02
+ADD BUY 200 @ 100.02
+ADD BUY 150 @ 100.01
+ADD SELL 200 @ 100.05
+ADD SELL 500 @ 100.06
+BOOK
+
+# Cancelling removes an order; a second cancel finds nothing.
+CANCEL 2
+CANCEL 2
+
+# Bad input is rejected before it reaches the book.
+ADD BUY 0 @ 100.00
+ADD BUY 10 @ 100.001
+ADD HOLD 10 @ 100.00
+CANCEL abc
+FLY 10
+
+# Without matching, a buy above the best ask just rests: the book is crossed.
+ADD BUY 50 @ 100.07
+BOOK 1

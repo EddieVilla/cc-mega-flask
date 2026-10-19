@@ -37,8 +37,11 @@ endif()
 # Core engine library. Later phases add their sources here.
 add_library(me_core
     src/instrument.cpp
+    src/ladder.cpp
     src/order.cpp
+    src/order_book.cpp
     src/price.cpp
+    src/price_level.cpp
     src/validation.cpp
     src/version.cpp)
 target_include_directories(me_core PUBLIC include)

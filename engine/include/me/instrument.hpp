@@ -21,7 +21,7 @@ class InstrumentRegistry {
 public:
     // Adds an instrument. Returns false, and changes nothing, if the symbol is
     // empty or already registered, or a setting is out of range.
-    bool add(Instrument instrument);
+    bool add(const Instrument& instrument);
 
     // The instrument for `symbol`, or nullptr if it isn't registered. The
     // pointer stays valid as more instruments are added.

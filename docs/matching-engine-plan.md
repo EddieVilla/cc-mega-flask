@@ -80,6 +80,7 @@ engine/
 │   ├── events.hpp         # Ack, Reject, Trade, Cancel, BookUpdate ...
 │   ├── price_level.hpp    # FIFO queue of orders at one price
 │   ├── order_book.hpp     # one symbol's bids + asks
+│   ├── ladder.hpp         # text rendering of a book
 │   ├── matching_engine.hpp# many books + routing + sequencing
 │   ├── event_listener.hpp # output interface
 │   └── clock.hpp          # real + fake clocks
@@ -95,6 +96,8 @@ engine/
 │   ├── test_validation.cpp
 │   ├── test_price_level.cpp
 │   ├── test_order_book.cpp
+│   ├── test_ladder.cpp
+│   ├── cli/                 # me_cli scripts + expected transcripts
 │   ├── test_matching.cpp
 │   ├── test_lifecycle.cpp
 │   ├── test_engine.cpp
@@ -110,16 +113,22 @@ engine/
 
 ```
 OrderBook
-├── bids: std::map<Price, PriceLevel, std::greater<>>   // best = begin()
-├── asks: std::map<Price, PriceLevel, std::less<>>      // best = begin()
+├── bids: std::map<Price, PriceLevel, BestPriceFirst>   // highest first; best = begin()
+├── asks: std::map<Price, PriceLevel, BestPriceFirst>   // lowest first;  best = begin()
 └── index: std::unordered_map<OrderId, Locator>         // O(1) cancel lookup
 
 PriceLevel
 ├── orders: std::list<Order>   // FIFO; front = highest priority
 └── total_qty: Qty             // cached for fast depth queries
 
-Locator = { Side, Price, std::list<Order>::iterator }
+Locator = { Side, map iterator to the level, list iterator to the order }
 ```
+
+`BestPriceFirst` is a comparator that sorts descending for bids and
+ascending for asks, so both sides share one map type and the best level is
+always `begin()`. The locator stores iterators rather than a price, so cancel
+never searches. Those iterators point into the book's own containers, which
+is why `OrderBook` can be moved but not copied.
 
 Complexity for this first version:
 
@@ -188,39 +197,54 @@ ones validation rejects and why.
 
 ---
 
-### Phase 2 — Order book with no matching
+### Phase 2 — Order book with no matching ✅
 
 Build the passive book first: orders rest, cancel, and can be inspected.
 Matching comes in the next phase.
 
 **Build**
-- `PriceLevel`: `push_back`, `erase(iterator)`, `front`, `total_qty`,
-  `empty`.
-- `OrderBook`: `add_resting(Order)`, `cancel(OrderId)`, `best_bid()`,
-  `best_ask()`, `spread()`, `depth(Side, n_levels)` → vector of
-  `{price, total_qty, order_count}`.
-- A `print_ladder(const OrderBook&)` helper that renders:
+- `PriceLevel`: `push_back`, `remove(iterator)` (returns the order),
+  `front`, `total_qty`, `order_count`, `empty`, and iteration in queue order.
+- `OrderBook`: `add_resting(Order)`, `cancel(OrderId)` (returns the cancelled
+  order), `best_bid()`, `best_ask()`, `spread()`, `depth(Side, n_levels)` →
+  vector of `{price, total_qty, order_count}`, plus `find(id)` and
+  `find_level(side, price)` for inspection.
+- `render_ladder(const OrderBook&)` draws a vertical price ladder: asks on
+  top, bids below, best prices next to the spread line.
 
 ```
-        BIDS            |            ASKS
-  qty    price          |   price     qty
-  300    100.02         |  100.05     200
-  150    100.01         |  100.06     500
+DEMO  orders: 5  bid levels: 2  ask levels: 2
+  side       price         qty  orders
+   ASK      100.06         500       1
+   ASK      100.05         200       1
+--------------------------------------  spread 0.03
+   BID      100.02         300       2
+   BID      100.01         150       1
 ```
 
 **Checkpoint 2 — first visible output:** `me_cli` accepts
-`ADD BUY 100 @ 100.02`, `CANCEL 3`, and `BOOK`, and prints the ladder.
-Orders that would cross just rest for now; the ladder shows a crossed book.
+`ADD BUY 100 @ 100.02`, `CANCEL 3`, and `BOOK [levels]`, and prints the
+ladder. It runs interactively, or on a script file (`me_cli script.txt`)
+with each command echoed. Orders that would cross just rest for now; the
+ladder flags the book as crossed.
 
-**Tests** (`test_price_level.cpp`, `test_order_book.cpp`)
+**Tests** (`test_price_level.cpp`, `test_order_book.cpp`, `test_ladder.cpp`,
+`cli/book_basics.in`)
 - An empty book has no best bid or ask.
 - Adding bids at 100, 101, 99 gives best bid 101; asks work the same way
   with the lowest price winning.
-- Two orders at the same price keep FIFO order.
-- `total_qty` updates on add and cancel.
+- Two orders at the same price keep FIFO order, and a cancelled and re-added
+  order goes to the back of the queue.
+- `total_qty` updates on add and cancel, counting only remaining quantity.
 - Cancelling the last order at a level removes the level.
-- Cancelling an unknown id returns `false` / `NotFound`.
+- Cancelling an unknown id returns `std::nullopt`; so does cancelling twice.
+- A duplicate order id is refused and leaves the book unchanged.
 - `depth(Buy, 3)` returns levels in correct order with correct aggregates.
+- A moved book still cancels correctly (its iterators moved with it).
+- The ladder renders exactly as expected for empty, one-sided, two-sided,
+  locked, and crossed books.
+- A CLI golden test runs a script through `me_cli` and compares the whole
+  transcript with `book_basics.expected`.
 
 ---
 

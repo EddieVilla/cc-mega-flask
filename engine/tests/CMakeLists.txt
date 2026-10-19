@@ -12,11 +12,25 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(me_tests
     test_instrument.cpp
+    test_ladder.cpp
+    test_order_book.cpp
     test_price.cpp
+    test_price_level.cpp
     test_sanity.cpp
     test_types.cpp
     test_validation.cpp)
-target_link_libraries(me_tests PRIVATE me_core GTest::gtest_main)
+target_link_libraries(me_tests PRIVATE me_core GTest::gmock GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(me_tests)
+
+# End-to-end tests: run me_cli on each script in cli/ and compare its output
+# with the matching .expected file.
+foreach(script book_basics)
+    add_test(NAME cli.${script}
+        COMMAND ${CMAKE_COMMAND}
+            -DCLI=$<TARGET_FILE:me_cli>
+            -DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/cli/${script}.in
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/cli/${script}.expected
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cli/compare_output.cmake)
+endforeach()

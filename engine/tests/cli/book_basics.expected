@@ -1,0 +1,47 @@
+> # Phase 2 checkpoint: orders rest on the book. Nothing matches yet.
+> ADD BUY 100 @ 100.02
+ACK #1 DEMO BUY 100 @ 100.02 GTC
+> ADD BUY 200 @ 100.02
+ACK #2 DEMO BUY 200 @ 100.02 GTC
+> ADD BUY 150 @ 100.01
+ACK #3 DEMO BUY 150 @ 100.01 GTC
+> ADD SELL 200 @ 100.05
+ACK #4 DEMO SELL 200 @ 100.05 GTC
+> ADD SELL 500 @ 100.06
+ACK #5 DEMO SELL 500 @ 100.06 GTC
+> BOOK
+DEMO  orders: 5  bid levels: 2  ask levels: 2
+  side       price         qty  orders
+   ASK      100.06         500       1
+   ASK      100.05         200       1
+--------------------------------------  spread 0.03
+   BID      100.02         300       2
+   BID      100.01         150       1
+
+> # Cancelling removes an order; a second cancel finds nothing.
+> CANCEL 2
+CANCELLED #2 DEMO BUY 200 @ 100.02 GTC
+> CANCEL 2
+ERROR no resting order with id 2
+
+> # Bad input is rejected before it reaches the book.
+> ADD BUY 0 @ 100.00
+REJECT invalid quantity
+> ADD BUY 10 @ 100.001
+ERROR invalid price "100.001"
+> ADD HOLD 10 @ 100.00
+ERROR side must be BUY or SELL, not "HOLD"
+> CANCEL abc
+ERROR usage: CANCEL <id>
+> FLY 10
+ERROR unknown command "FLY" (try HELP)
+
+> # Without matching, a buy above the best ask just rests: the book is crossed.
+> ADD BUY 50 @ 100.07
+ACK #6 DEMO BUY 50 @ 100.07 GTC
+> BOOK 1
+DEMO  orders: 5  bid levels: 3  ask levels: 2
+  side       price         qty  orders
+   ASK      100.05         200       1
+--------------------------------------  spread -0.02 (crossed)
+   BID      100.07          50       1
